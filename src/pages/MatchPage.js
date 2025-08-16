@@ -205,7 +205,12 @@ const MessageBubble = ({
               ) : (
                 <span className="text-gray-400">✓</span>
               )}
-              {console.log(`Message ${msg.id} is_read:`, msg.is_read, 'content:', msg.content.substring(0, 20) + '...')}
+              {console.log(
+                `Message ${msg.id} is_read:`,
+                msg.is_read,
+                "content:",
+                msg.content.substring(0, 20) + "..."
+              )}
             </span>
           )}
         </div>
@@ -362,8 +367,6 @@ function MatchPage() {
   const [uploading, setUploading] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
-  const [unreadCounts, setUnreadCounts] = useState({});
-  const [isTyping, setIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState({});
   const [onlineUsers, setOnlineUsers] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -371,7 +374,7 @@ function MatchPage() {
   const [showSearch, setShowSearch] = useState(false);
   const [messageToReply, setMessageToReply] = useState(null);
   const [currentUserProfile, setCurrentUserProfile] = useState(null);
-  const [otherUserProfile, setOtherUserProfile] = useState(null);
+  const [unreadCounts] = useState({}); // ✅ กัน no-undef: ยังไม่คำนวณจริง อ่านเป็น 0
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -469,7 +472,7 @@ function MatchPage() {
         scrollToBottom("auto");
       }, 500);
     }
-  }, [chatId]);
+  }, [chatId, messages.length]);
 
   // Load current user & profile
   useEffect(() => {
@@ -584,31 +587,16 @@ function MatchPage() {
   useEffect(() => {
     if (!chatId || !currentUserId) {
       setMessages([]);
-      setOtherUserProfile(null);
       return;
     }
 
     console.log("💬 Setting up polling chat for:", chatId);
 
-    const loadOtherUserProfile = async () => {
-      const active = chatRooms.find((c) => c.id === chatId);
-      if (active && active.otherUser) {
-        console.log("🖼️ Loading other user profile:", active.otherUser);
-        console.log("🖼️ Profile image URL:", active.otherUser.profile_image);
-        setOtherUserProfile(active.otherUser);
-      } else {
-        console.log(
-          "❌ No active chat or other user found for profile loading"
-        );
-      }
-    };
-    loadOtherUserProfile();
-
     const fetchMessages = async () => {
       if (!chatId) return;
-      
+
       console.log("📥 Fetching messages for chat:", chatId);
-      
+
       try {
         // First, fetch messages
         const { data: messagesData, error: fetchError } = await supabase
@@ -623,82 +611,98 @@ function MatchPage() {
         }
 
         console.log(`✅ Fetched ${messagesData?.length || 0} messages`);
-        
+
         // Update messages in state
         setMessages(messagesData || []);
-        
+
         // Check for unread messages from other users
         if (messagesData && messagesData.length > 0) {
           // Log first 3 messages for debugging
-          console.log('Sample messages (first 3):', 
-            messagesData.slice(0, 3).map(m => ({
-              id: m.id, 
-              content: m.content?.substring(0, 20) + '...',
+          console.log(
+            "Sample messages (first 3):",
+            messagesData.slice(0, 3).map((m) => ({
+              id: m.id,
+              content: m.content?.substring(0, 20) + "...",
               sender_id: m.sender_id,
               is_read: m.is_read,
-              created_at: m.created_at
+              created_at: m.created_at,
             }))
           );
-          
+
           const unreadMessages = messagesData.filter(
             (msg) => !msg.is_read && msg.sender_id !== currentUserId
           );
-          
-          console.log(`📩 Found ${unreadMessages.length} unread messages from other users`);
-          
+
+          console.log(
+            `📩 Found ${unreadMessages.length} unread messages from other users`
+          );
+
           // If there are unread messages, mark them as read
           if (unreadMessages.length > 0) {
             console.log("🔍 Marking messages as read...");
-            console.log('Unread message IDs:', unreadMessages.map(m => m.id));
-            
+            console.log(
+              "Unread message IDs:",
+              unreadMessages.map((m) => m.id)
+            );
+
             try {
               // Call the database function to mark messages as read
-              console.log('Calling mark_messages_as_read with:', { 
-                chat_id_param: chatId, 
-                user_id_param: currentUserId 
+              console.log("Calling mark_messages_as_read with:", {
+                chat_id_param: chatId,
+                user_id_param: currentUserId,
               });
-              
-              const { data: markReadResult, error: markReadError } = await supabase.rpc(
-                "mark_messages_as_read",
-                {
+
+              const { data: markReadResult, error: markReadError } =
+                await supabase.rpc("mark_messages_as_read", {
                   chat_id_param: chatId,
                   user_id_param: currentUserId,
-                }
-              );
-              
+                });
+
               if (markReadError) {
-                console.error("❌ Error marking messages as read:", markReadError);
+                console.error(
+                  "❌ Error marking messages as read:",
+                  markReadError
+                );
               } else {
-                console.log("✅ Successfully marked messages as read. Result:", markReadResult);
-                
+                console.log(
+                  "✅ Successfully marked messages as read. Result:",
+                  markReadResult
+                );
+
                 // Refresh messages to get updated read status
-                console.log('Refreshing messages to get updated read status...');
-                const { data: updatedMessages, error: refreshError } = await supabase
-                  .from("messages")
-                  .select("*")
-                  .eq("chat_id", chatId)
-                  .order("created_at", { ascending: true });
-                  
+                console.log(
+                  "Refreshing messages to get updated read status..."
+                );
+                const { data: updatedMessages, error: refreshError } =
+                  await supabase
+                    .from("messages")
+                    .select("*")
+                    .eq("chat_id", chatId)
+                    .order("created_at", { ascending: true });
+
                 if (refreshError) {
                   console.error("❌ Error refreshing messages:", refreshError);
                 } else if (updatedMessages) {
                   // Verify if messages were actually marked as read
                   const stillUnread = updatedMessages.filter(
-                    msg => !msg.is_read && msg.sender_id !== currentUserId
+                    (msg) => !msg.is_read && msg.sender_id !== currentUserId
                   );
-                  console.log(`After update: ${stillUnread.length} messages still unread`);
-                  
+                  console.log(
+                    `After update: ${stillUnread.length} messages still unread`
+                  );
+
                   if (stillUnread.length > 0) {
-                    console.log('Sample unread messages after update:', 
-                      stillUnread.slice(0, 3).map(m => ({
-                        id: m.id, 
-                        content: m.content?.substring(0, 20) + '...',
+                    console.log(
+                      "Sample unread messages after update:",
+                      stillUnread.slice(0, 3).map((m) => ({
+                        id: m.id,
+                        content: m.content?.substring(0, 20) + "...",
                         sender_id: m.sender_id,
-                        is_read: m.is_read
+                        is_read: m.is_read,
                       }))
                     );
                   }
-                  
+
                   console.log("🔄 Updating UI with read status");
                   setMessages(updatedMessages);
                 }
@@ -715,7 +719,7 @@ function MatchPage() {
 
     // Initial fetch
     fetchMessages();
-    
+
     // Set up polling
     const messagesInterval = setInterval(fetchMessages, 2000);
 
@@ -1195,9 +1199,11 @@ function MatchPage() {
           <>
             <header className="p-4 flex justify-between items-center border-b bg-white shadow-sm">
               <div className="flex items-center gap-3">
-                <div 
+                <div
                   className="relative cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => navigate(`/profile/${activeChat.otherUser.id}`)}
+                  onClick={() =>
+                    navigate(`/profile/${activeChat.otherUser.id}`)
+                  }
                 >
                   <img
                     src={
@@ -1220,9 +1226,11 @@ function MatchPage() {
                     }
                   ></span>
                 </div>
-                <div 
+                <div
                   className="cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => navigate(`/profile/${activeChat.otherUser.id}`)}
+                  onClick={() =>
+                    navigate(`/profile/${activeChat.otherUser.id}`)
+                  }
                 >
                   <div className="font-semibold text-gray-800">
                     {activeChat.otherUser.display_name}
@@ -1313,7 +1321,7 @@ function MatchPage() {
                     msg={msg}
                     currentUserId={currentUserId}
                     onReaction={handleReaction}
-                    onReply={setMessageToReply}
+                    onReply={handleReplyToMessage}
                     onDelete={async (messageId) => {
                       try {
                         const { error } = await supabase
