@@ -2,63 +2,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
-
-// ⭐ ดาวรองรับครึ่งดาว (>= 0.5)
-const StarRating = ({ rating, size = "w-5 h-5" }) => {
-  const safe = Math.max(0, Math.min(5, Number(rating) || 0));
-  const full = Math.floor(safe);
-  const frac = safe - full;
-  const hasHalf = frac >= 0.5 && frac < 1;
-  const empty = 5 - full - (hasHalf ? 1 : 0);
-
-  const stars = [];
-  for (let i = 0; i < full; i++) {
-    stars.push(
-      <svg
-        key={`f-${i}`}
-        className={`${size} text-yellow-400`}
-        viewBox="0 0 20 20"
-        fill="currentColor"
-      >
-        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-      </svg>
-    );
-  }
-  if (hasHalf) {
-    stars.push(
-      <svg
-        key="h"
-        className={`${size} text-yellow-400`}
-        viewBox="0 0 20 20"
-        fill="currentColor"
-      >
-        <defs>
-          <linearGradient id="halfGradient">
-            <stop offset="50%" stopColor="currentColor" />
-            <stop offset="50%" stopColor="rgb(229 231 235)" />
-          </linearGradient>
-        </defs>
-        <path
-          fill="url(#halfGradient)"
-          d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-        />
-      </svg>
-    );
-  }
-  for (let i = 0; i < empty; i++) {
-    stars.push(
-      <svg
-        key={`e-${i}`}
-        className={`${size} text-gray-300`}
-        viewBox="0 0 20 20"
-        fill="currentColor"
-      >
-        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-      </svg>
-    );
-  }
-  return <div className="flex items-center">{stars}</div>;
-};
+import StarRating from "../components/StarRating";
 
 // 🧱 Card
 const Card = ({ children, className = "" }) => (

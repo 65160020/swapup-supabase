@@ -193,7 +193,10 @@ function Home() {
                     {m.province?.name_th}
                   </p>
 
-                  <StarRating rating={m.avg_rating || m.rating || 0} />
+                  <StarRating
+                    rating={m.rating || m.avg_rating || 0}
+                    className="justify-center"
+                  />
 
                   <div className="mt-4 flex-grow">
                     <p className="text-sm font-semibold text-gray-500 mb-2">
@@ -280,7 +283,7 @@ function Home() {
                     {matchedUser.province?.name_th}
                   </p>
                   <StarRating
-                    rating={matchedUser.avg_rating || matchedUser.rating || 0}
+                    rating={matchedUser.rating || matchedUser.avg_rating || 0}
                     className="justify-center md:justify-start"
                   />
                   <p className="text-gray-600 mb-4 mt-2 break-words [word-break:break-word]">
